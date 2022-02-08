@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
@@ -70,6 +71,23 @@ func deleteRequestHandler(w http.ResponseWriter, r *http.Request) {
 	delete(runningVMs, req.ID)
 }
 
+func putMetadata(unixSocketAddr string, jsonBytes []byte) {
+	httpc := http.Client{
+		Transport: &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", unixSocketAddr)
+			},
+		},
+	}
+	req, err := http.NewRequest(http.MethodPut, "http://localhost/mmds", bytes.NewReader(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	_, err = httpc.Do(req)
+	if err != nil {
+		log.Fatalf("failed to put metadata, %s", err)
+	}
+}
+
 func createRequestHandler(w http.ResponseWriter, r *http.Request) {
 	ipByte += 1
 	body, err := ioutil.ReadAll(r.Body)
@@ -99,6 +117,8 @@ func createRequestHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(response)
 
 	runningVMs[id] = *running
+
+	putMetadata(opts.FcSocketPath, body)
 
 	go func() {
 		defer running.cancelCtx()
