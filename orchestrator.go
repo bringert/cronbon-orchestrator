@@ -136,7 +136,7 @@ func pseudo_uuid() string {
 		log.Fatalf("failed to generate uuid, %s", err)
 	}
 
-	return fmt.Sprintf("%X-%X-%X-%X-%X", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+	return fmt.Sprintf("vm_%x%x%x%x%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
 
 func getOptions(id byte, req CreateRequest) options {
