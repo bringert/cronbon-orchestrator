@@ -6,8 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	firecracker "github.com/firecracker-microvm/firecracker-go-sdk"
-	models "github.com/firecracker-microvm/firecracker-go-sdk/client/models"
 	"io"
 	"io/ioutil"
 	"log"
@@ -17,6 +15,9 @@ import (
 	"os/exec"
 	"os/signal"
 	"syscall"
+
+	firecracker "github.com/firecracker-microvm/firecracker-go-sdk"
+	models "github.com/firecracker-microvm/firecracker-go-sdk/client/models"
 )
 
 type CreateRequest struct {
@@ -143,11 +144,11 @@ func getOptions(id byte, req CreateRequest) options {
 	fc_ip := net.IPv4(172, 17, 0, id).String()
 	gateway_ip := "172.17.0.1"
 	docker_mask_long := "255.255.255.0"
-	bootArgs := "ro console=ttyS0 noapic reboot=k panic=1 pci=off nomodules random.trust_cpu=on "
+
+	bootArgs := "console=ttyS0 reboot=k panic=1 pci=off "
 	bootArgs = bootArgs + fmt.Sprintf("ip=%s::%s:%s::eth0:off", fc_ip, gateway_ip, docker_mask_long)
 	return options{
-		//FcBinary:        "/root/release-v1.0.0-x86_64/firecracker-v1.0.0-x86_64",
-		FcBinary:		 "/root/release-v0.25.2-x86_64/firecracker-v0.25.2-x86_64",
+		FcBinary:        "./run/firecracker",
 		Request:         req,
 		FcKernelCmdLine: bootArgs,
 		FcSocketPath:    fmt.Sprintf("/tmp/firecracker-%d.sock", id),
@@ -191,12 +192,12 @@ func (opts *options) createVMM(ctx context.Context) (*RunningFirecracker, error)
 	}
 
 	/*
-	ip link del "$TAP_DEV" 2> /dev/null || true
-	ip tuntap add dev "$TAP_DEV" mode tap
-	sysctl -w net.ipv4.conf.${TAP_DEV}.proxy_arp=1 > /dev/null
-	sysctl -w net.ipv6.conf.${TAP_DEV}.disable_ipv6=1 > /dev/null
-	sudo brctl addif docker0 $TAP_DEV
-	ip link set dev "$TAP_DEV" up
+		ip link del "$TAP_DEV" 2> /dev/null || true
+		ip tuntap add dev "$TAP_DEV" mode tap
+		sysctl -w net.ipv4.conf.${TAP_DEV}.proxy_arp=1 > /dev/null
+		sysctl -w net.ipv6.conf.${TAP_DEV}.disable_ipv6=1 > /dev/null
+		sudo brctl addif docker0 $TAP_DEV
+		ip link set dev "$TAP_DEV" up
 
 	*/
 	log.Println("Configuring TAP device: " + opts.TapDev)
@@ -218,7 +219,7 @@ func (opts *options) createVMM(ctx context.Context) (*RunningFirecracker, error)
 	}
 
 	if err := exec.Command("ip", "link", "set", opts.TapDev, "master", "docker0").Run(); err != nil {
-	 	return nil, fmt.Errorf("Failed adding tap device to bridge: %s", err)
+		return nil, fmt.Errorf("Failed adding tap device to bridge: %s", err)
 	}
 	if err := exec.Command("ip", "link", "set", "dev", opts.TapDev, "up").Run(); err != nil {
 		return nil, fmt.Errorf("Failed creating ip link: %s", err)
@@ -312,7 +313,7 @@ func copyImage(src string) (string, error) {
 	}
 	defer source.Close()
 
-	destination, err := ioutil.TempFile("/images", "image")
+	destination, err := ioutil.TempFile("./run/images", "image")
 	if err != nil {
 		return "", err
 	}
