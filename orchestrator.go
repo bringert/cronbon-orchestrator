@@ -283,7 +283,7 @@ func (opts *options) getConfig() (*firecracker.Config, error) {
 			VcpuCount:  firecracker.Int64(opts.FcCPUCount),
 			MemSizeMib: firecracker.Int64(opts.FcMemSz),
 			//CPUTemplate: models.CPUTemplate(opts.FcCPUTemplate),
-			HtEnabled: firecracker.Bool(false),
+			//HtEnabled: firecracker.Bool(false),
 		},
 		// // If not provided, the default address (169.254.169.254) will be used.
 		//MmdsAddress: "169.254.169.250",
